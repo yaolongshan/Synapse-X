@@ -15,64 +15,60 @@ cmake_minimum_required(VERSION 3.28)
 #    src/                 — implementation + main
 # ═══════════════════════════════════════════════════════════════
 
-project(SynapseX_Client
-    VERSION 1.0.0
-    DESCRIPTION "Client receiver: UDP recv → LZ4 decompress → TensorRT inference"
-    LANGUAGES C CXX
-)
-
-# ── C++17 ──────────────────────────────────────────────
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
-# ── Export compile commands (for clangd / IDE) ─────────
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-# ── Windows SDK ────────────────────────────────────────
-if(WIN32)
-    add_definitions(-DUNICODE -D_UNICODE -DWIN32_LEAN_AND_MEAN -DNOMINIMAX)
-endif()
-
-# ── MSVC compile options ───────────────────────────────
-if(MSVC)
-    add_compile_options(
-        /utf-8
-        /W3
-        /permissive-
-        /Zc:__cplusplus
-        /Zc:preprocessor
+# 单独 cd client 时才 project；根工程 add_subdirectory 时沿用顶层 SynapseX
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    project(SynapseX_Client
+        VERSION 1.0.0
+        DESCRIPTION "Client receiver: UDP recv → LZ4 decompress → TensorRT inference"
+        LANGUAGES C CXX
     )
-    add_compile_definitions(
-        _CRT_SECURE_NO_WARNINGS
-        $<$<CONFIG:Release>:NDEBUG>
+
+    set(CMAKE_CXX_STANDARD 17)
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+    set(CMAKE_CXX_EXTENSIONS OFF)
+    set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+    if(WIN32)
+        add_definitions(-DUNICODE -D_UNICODE -DWIN32_LEAN_AND_MEAN -DNOMINIMAX)
+    endif()
+
+    if(MSVC)
+        add_compile_options(
+            /utf-8
+            /W3
+            /permissive-
+            /Zc:__cplusplus
+            /Zc:preprocessor
+        )
+        add_compile_definitions(
+            _CRT_SECURE_NO_WARNINGS
+            $<$<CONFIG:Release>:NDEBUG>
+        )
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2 /Gy /Oi")
+    endif()
+endif()
+
+if(NOT TARGET lz4_static)
+    set(LZ4_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/lz4-1.10.0/lib")
+    add_library(lz4_static STATIC
+        "${LZ4_SRC_DIR}/lz4.c"
+        "${LZ4_SRC_DIR}/lz4.h"
     )
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2 /Gy /Oi")
+    target_include_directories(lz4_static PUBLIC "${LZ4_SRC_DIR}")
+    if(MSVC)
+        target_compile_options(lz4_static PRIVATE /W0)
+    endif()
 endif()
 
-# ═══════════════════════════════════════════════════════════════
-#  LZ4 (compiled directly from thirdparty source)
-# ═══════════════════════════════════════════════════════════════
-set(LZ4_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/lz4-1.10.0/lib")
-add_library(lz4_static STATIC
-    "${LZ4_SRC_DIR}/lz4.c"
-    "${LZ4_SRC_DIR}/lz4.h"
-)
-target_include_directories(lz4_static PUBLIC "${LZ4_SRC_DIR}")
-if(MSVC)
-    target_compile_options(lz4_static PRIVATE /W0)
+if(NOT TARGET SynapseX_Shared)
+    add_library(SynapseX_Shared INTERFACE)
+    target_include_directories(SynapseX_Shared INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../shared/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/spdlog-1.17.0/include
+    )
+    target_compile_features(SynapseX_Shared INTERFACE cxx_std_17)
+    target_compile_definitions(SynapseX_Shared INTERFACE SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_DEBUG)
 endif()
-
-# ═══════════════════════════════════════════════════════════════
-#  Shared protocol headers (header-only)
-# ═══════════════════════════════════════════════════════════════
-add_library(SynapseX_Shared INTERFACE)
-target_include_directories(SynapseX_Shared INTERFACE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../shared/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/spdlog-1.17.0/include
-)
-target_compile_features(SynapseX_Shared INTERFACE cxx_std_17)
-target_compile_definitions(SynapseX_Shared INTERFACE SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_DEBUG)
 
 # ═══════════════════════════════════════════════════════════════
 #  CUDA Toolkit — CLion 进程经常没有 CUDA_PATH，按常见目录找 nvcc
@@ -91,11 +87,16 @@ endif()
 
 find_package(CUDAToolkit)
 if(NOT CUDAToolkit_FOUND)
-    message(FATAL_ERROR
-        "未找到 CUDA Toolkit（没有 nvcc）。当前只有 GPU 驱动不够。\n"
-        "请安装 CUDA Toolkit 13.2 或 13.1，或把 nvcc 加进 PATH / 设置 CUDAToolkit_ROOT。\n"
-        "然后删掉 client/build_x64 再 Reload CMake。\n"
-        "下载: https://developer.nvidia.com/cuda-downloads")
+    if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+        message(FATAL_ERROR
+            "未找到 CUDA Toolkit（没有 nvcc）。当前只有 GPU 驱动不够。\n"
+            "请安装 CUDA Toolkit 13.2 或 13.1，或把 nvcc 加进 PATH / 设置 CUDAToolkit_ROOT。\n"
+            "然后删掉 client/build_x64 再 Reload CMake。\n"
+            "下载: https://developer.nvidia.com/cuda-downloads")
+    else()
+        message(WARNING "[SynapseX Client] 未找到 CUDA Toolkit，跳过 Client 目标（Host/View 仍可编）")
+        return()
+    endif()
 endif()
 message(STATUS "[SynapseX Client] CUDA Toolkit found via find_package:")
 message(STATUS "  Version:        ${CUDAToolkit_VERSION}")
@@ -125,8 +126,14 @@ if(EXISTS "${TRT_BASE_PATH}/include/NvInfer.h")
                        "Enabling inference module.")
     endif()
 else()
-    message(WARNING "[SynapseX Client] TensorRT NOT found at ${TRT_BASE_PATH}. "
-                    "Inference target will be skipped.")
+    if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+        message(FATAL_ERROR
+            "未找到 TensorRT（${TRT_BASE_PATH}/include/NvInfer.h）。\n"
+            "Client 需要 TensorRT 10.16.1.11。")
+    else()
+        message(WARNING "[SynapseX Client] 未找到 TensorRT，跳过 Client 目标（Host/View 仍可编）")
+        return()
+    endif()
 endif()
 
 # ═══════════════════════════════════════════════════════════════

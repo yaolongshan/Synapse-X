@@ -10,7 +10,7 @@ All comments and documentation are in Chinese. Code identifiers are in English.
 
 ## Build Commands
 
-Host and Client are built **independently** on separate physical machines. There is no top-level build.
+Host and Client can still be built **independently** (`cd host` / `cd client`). Opening the repo root in CLion uses the top-level `CMakeLists.txt` (preset `windows-x64`) and builds Host + Client + View together. Without CUDA, Client is skipped and the rest still configure.
 
 ### Host (gaming machine)
 ```powershell

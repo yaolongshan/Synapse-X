@@ -72,13 +72,19 @@
 
 ### 构建
 
+CLion 打开仓库根目录，选 preset `windows-x64`，一次 Reload 即可识别 Host / Client / View。无 CUDA 时 Client 会跳过，Host 和 View 仍可编。两台机器上仍可单独 `cd host` / `cd client` 构建。
+
 ```powershell
-# 主机（游戏机）
+# 仓库根（三个模块一起）
+cmake --preset windows-x64
+cmake --build build_x64
+
+# 主机（游戏机）单独编
 cd host
 cmake --preset windows-x64
 cmake --build build_x64 --config RelWithDebInfo
 
-# 副机（推理机）
+# 副机（推理机）单独编
 cd client
 cmake --preset windows-x64
 cmake --build build_x64 --config RelWithDebInfo
@@ -133,7 +139,9 @@ Synapse-X/
 ├── README.md                        ← 本文件
 ├── CLAUDE.md                        ← AI 助手指南
 ├── .gitignore
-├── CMakeLists.txt                   ← 根 CMake（仅 IDE 索引）
+├── CMakeLists.txt                   ← 根 CMake（CLion 打开根目录：Host+Client+View）
+├── CMakePresets.json                ← 根 preset（Ninja windows-x64）
+├── .run/                            ← CLion 运行配置
 │
 ├── shared/include/
 │   ├── PacketHeader.h               ← 主机→副机通信协议 (24B, 魔数 0x5358)
@@ -169,6 +177,11 @@ Synapse-X/
 │   ├── CMakeLists.txt
 │   ├── CMakePresets.json
 │   └── CLIENT_SPEC.md               ← 副机完整规格说明
+│
+├── view/
+│   ├── src/main.cpp                 ← UDP 收帧 + D3D11 显示
+│   ├── CMakeLists.txt
+│   └── CMakePresets.json
 │
 └── thirdparty/
     ├── lz4-1.10.0/                  ← LZ4 源码（编译为静态库）

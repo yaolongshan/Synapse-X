@@ -1,20 +1,29 @@
 cmake_minimum_required(VERSION 3.28)
 project(SynapseX
     VERSION 1.0.0
-    DESCRIPTION "Ultra-low latency visual inference — mono-repo root"
-    LANGUAGES CXX
+    DESCRIPTION "Host + Client + View — CLion 打开仓库根即可编三个模块"
+    LANGUAGES C CXX
 )
 
-# ═══════════════════════════════════════════════════════════════
-#  此文件仅为 mono-repo 根目录提供 IDE 上下文。
-#
-#  Host 和 Client 是两台物理隔离的机器，各自独立编译：
-#   · Host:  cd host   && cmake --preset windows-x64
-#   · Client: cd client && cmake --preset ...
-#
-#  共享头文件 (shared/) 通过相对路径 ../shared/ 被双方引用。
-# ═══════════════════════════════════════════════════════════════
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# 提供 shared 头文件库和 client 模块的 IDE 索引（不参与实际编译产出）
+if(WIN32)
+    add_definitions(-DUNICODE -D_UNICODE -DWIN32_LEAN_AND_MEAN -DNOMINMAX)
+endif()
+
+if(MSVC)
+    add_compile_options(/utf-8 /W3 /permissive- /Zc:__cplusplus /Zc:preprocessor)
+    add_compile_definitions(
+        _CRT_SECURE_NO_WARNINGS
+        $<$<CONFIG:Release>:NDEBUG>
+    )
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2 /Gy /Oi")
+endif()
+
 add_subdirectory(shared)
+add_subdirectory(host)
+add_subdirectory(view)
 add_subdirectory(client)

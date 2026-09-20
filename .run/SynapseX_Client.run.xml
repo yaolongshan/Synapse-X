@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="SynapseX_Client" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="8888 unused 192.168.100.1" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$CMakeCurrentBuildDir$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="SynapseX_Client" TARGET_NAME="SynapseX_Client" CONFIG_NAME="windows-x64" RUN_TARGET_PROJECT_NAME="SynapseX_Client" RUN_TARGET_NAME="SynapseX_Client">
+  <configuration default="false" name="SynapseX_Client" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="8888 unused 192.168.100.1" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$CMakeCurrentBuildDir$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="SynapseX" TARGET_NAME="SynapseX_Client" CONFIG_NAME="windows-x64" RUN_TARGET_PROJECT_NAME="SynapseX" RUN_TARGET_NAME="SynapseX_Client">
     <envs>
       <env name="PATH" value="C:\Program Files\NVIDIA\TensorRT-10.16.1.11.Windows.amd64.cuda-13.2\TensorRT-10.16.1.11\bin;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.2\bin\x64;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.2\bin;$PATH$" />
     </envs>

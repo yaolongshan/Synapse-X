@@ -1,0 +1,28 @@
+{
+    "version": 8,
+    "configurePresets": [
+        {
+            "name": "template",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+            }
+        },
+        {
+            "name": "windows-x64",
+            "displayName": "Windows x64 — SynapseX",
+            "description": "Ninja + MSVC x64（CLion 打开仓库根：Host + Client + View）",
+            "inherits": "template",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build_x64"
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "release",
+            "displayName": "RelWithDebInfo",
+            "configurePreset": "windows-x64"
+        }
+    ]
+}
