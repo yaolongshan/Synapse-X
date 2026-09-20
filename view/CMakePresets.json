@@ -11,7 +11,7 @@
         },
         {
             "name": "windows-x64",
-            "displayName": "Windows x64 — Client",
+            "displayName": "Windows x64 — View",
             "description": "Ninja + MSVC x64（CLion 自带 CMake 不支持 VS 2026 生成器）",
             "inherits": "template",
             "generator": "Ninja",
@@ -21,12 +21,7 @@
     "buildPresets": [
         {
             "name": "release",
-            "displayName": "Client RelWithDebInfo",
-            "configurePreset": "windows-x64"
-        },
-        {
-            "name": "debug",
-            "displayName": "Client Debug",
+            "displayName": "View RelWithDebInfo",
             "configurePreset": "windows-x64"
         }
     ]

@@ -75,23 +75,35 @@ target_compile_features(SynapseX_Shared INTERFACE cxx_std_17)
 target_compile_definitions(SynapseX_Shared INTERFACE SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_DEBUG)
 
 # ═══════════════════════════════════════════════════════════════
-#  CUDA 13.1 — find + compile .cu via nvcc custom command
+#  CUDA Toolkit — CLion 进程经常没有 CUDA_PATH，按常见目录找 nvcc
 # ═══════════════════════════════════════════════════════════════
 set(SX_CUDA_FOUND FALSE)
 
-find_package(CUDAToolkit REQUIRED)
-if(CUDAToolkit_FOUND)
-    message(STATUS "[SynapseX Client] CUDA Toolkit found via find_package:")
-    message(STATUS "  Version:        ${CUDAToolkit_VERSION}")
-    message(STATUS "  Include dirs:   ${CUDAToolkit_INCLUDE_DIRS}")
-    message(STATUS "  Toolkit dir:    ${CUDAToolkit_TARGET_DIR}")
-    set(SX_CUDA_FOUND TRUE)
-    set(SX_CUDA_INCLUDE_DIRS ${CUDAToolkit_INCLUDE_DIRS})
-    set(SX_CUDA_LIB_DIR     "${CUDAToolkit_TARGET_DIR}/lib/x64")
-else()
-    message(WARNING "[SynapseX Client] CUDA NOT found. "
-                    "TensorRT inference will be disabled.")
+if(NOT CUDAToolkit_ROOT AND NOT DEFINED ENV{CUDAToolkit_ROOT} AND NOT DEFINED ENV{CUDA_PATH})
+    foreach(_ver IN ITEMS 13.4 13.3 13.2 13.1 12.8 12.6)
+        set(_cand "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v${_ver}")
+        if(EXISTS "${_cand}/bin/nvcc.exe")
+            set(CUDAToolkit_ROOT "${_cand}")
+            break()
+        endif()
+    endforeach()
 endif()
+
+find_package(CUDAToolkit)
+if(NOT CUDAToolkit_FOUND)
+    message(FATAL_ERROR
+        "未找到 CUDA Toolkit（没有 nvcc）。当前只有 GPU 驱动不够。\n"
+        "请安装 CUDA Toolkit 13.2 或 13.1，或把 nvcc 加进 PATH / 设置 CUDAToolkit_ROOT。\n"
+        "然后删掉 client/build_x64 再 Reload CMake。\n"
+        "下载: https://developer.nvidia.com/cuda-downloads")
+endif()
+message(STATUS "[SynapseX Client] CUDA Toolkit found via find_package:")
+message(STATUS "  Version:        ${CUDAToolkit_VERSION}")
+message(STATUS "  Include dirs:   ${CUDAToolkit_INCLUDE_DIRS}")
+message(STATUS "  Toolkit dir:    ${CUDAToolkit_TARGET_DIR}")
+set(SX_CUDA_FOUND TRUE)
+set(SX_CUDA_INCLUDE_DIRS ${CUDAToolkit_INCLUDE_DIRS})
+set(SX_CUDA_LIB_DIR     "${CUDAToolkit_TARGET_DIR}/lib/x64")
 
 # ═══════════════════════════════════════════════════════════════
 #  TensorRT 10.16.1.11 — 手动寻址
@@ -133,7 +145,10 @@ if(SX_CUDA_FOUND AND SX_TENSORRT_FOUND)
         ${SX_CUDA_INCLUDE_DIRS}
         ${SX_TRT_INCLUDE_DIRS}
     )
-    target_compile_definitions(SynapseX_Inference PRIVATE NOMINMAX)
+    target_compile_definitions(SynapseX_Inference PRIVATE
+        NOMINMAX
+        "SX_MODEL_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/model/engine\""
+    )
     target_link_libraries(SynapseX_Inference PUBLIC
         ${SX_TRT_LIB_DIR}/nvinfer_10.lib
         ${SX_TRT_LIB_DIR}/nvinfer_plugin_10.lib
@@ -168,7 +183,10 @@ target_include_directories(SynapseX_Client PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/../shared/include
 )
-target_compile_definitions(SynapseX_Client PRIVATE NOMINMAX)
+target_compile_definitions(SynapseX_Client PRIVATE
+    NOMINMAX
+    "SX_MODEL_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/model/engine\""
+)
 target_link_libraries(SynapseX_Client PRIVATE ${CLIENT_LIBS})
 
 # 链接 CUDA + TensorRT 推理模块
@@ -184,6 +202,29 @@ if(SX_HAS_INFERENCE)
         ${SX_CUDA_LIB_DIR}/cudart.lib
         ${SX_CUDA_LIB_DIR}/cuda.lib
     )
+
+    # CUDA 13 的运行时 DLL 在 bin/x64，CLion/双击 exe 都看不到系统 PATH 里的 TensorRT
+    set(_sx_cuda_bin "${CUDAToolkit_TARGET_DIR}/bin")
+    if(EXISTS "${CUDAToolkit_TARGET_DIR}/bin/x64")
+        set(_sx_cuda_bin "${CUDAToolkit_TARGET_DIR}/bin/x64")
+    endif()
+    file(GLOB SX_TRT_RUNTIME_DLLS "${TRT_BASE_PATH}/bin/*.dll")
+    file(GLOB SX_CUDA_RUNTIME_DLLS
+        "${_sx_cuda_bin}/nvrtc*.dll"
+        "${_sx_cuda_bin}/cudart64*.dll"
+        "${_sx_cuda_bin}/cublas64*.dll"
+        "${_sx_cuda_bin}/cublasLt64*.dll"
+        "${_sx_cuda_bin}/nvJitLink*.dll"
+    )
+    if(SX_TRT_RUNTIME_DLLS OR SX_CUDA_RUNTIME_DLLS)
+        add_custom_command(TARGET SynapseX_Client POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                ${SX_TRT_RUNTIME_DLLS}
+                ${SX_CUDA_RUNTIME_DLLS}
+                "$<TARGET_FILE_DIR:SynapseX_Client>"
+            COMMENT "Copying TensorRT/CUDA runtime DLLs"
+        )
+    endif()
 endif()
 
 # ── Summary ────────────────────────────────────────────

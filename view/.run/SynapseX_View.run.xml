@@ -1,0 +1,19 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="SynapseX_View" type="CMakeRunConfiguration" factoryName="Application"
+                 PROGRAM_PARAMS="8888"
+                 REDIRECT_INPUT="false"
+                 ELEVATE="false"
+                 USE_EXTERNAL_CONSOLE="false"
+                 EMULATE_TERMINAL="false"
+                 WORKING_DIR="file://$CMakeCurrentBuildDir$"
+                 PASS_PARENT_ENVS_2="true"
+                 PROJECT_NAME="SynapseX_View"
+                 TARGET_NAME="SynapseX_View"
+                 CONFIG_NAME="windows-x64"
+                 RUN_TARGET_PROJECT_NAME="SynapseX_View"
+                 RUN_TARGET_NAME="SynapseX_View">
+    <method v="2">
+      <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+    </method>
+  </configuration>
+</component>

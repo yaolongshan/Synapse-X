@@ -5,38 +5,29 @@
             "name": "template",
             "hidden": true,
             "cacheVariables": {
-                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo"
             }
         },
         {
             "name": "windows-x64",
             "displayName": "Windows x64 — Host",
-            "description": "Visual Studio 2026 — x64 — Windows SDK 10.0.26100",
+            "description": "Ninja + MSVC x64（CLion 自带 CMake 不支持 VS 2026 生成器）",
             "inherits": "template",
-            "generator": "Visual Studio 18 2026",
-            "architecture": {
-                "value": "x64",
-                "strategy": "set"
-            },
-            "toolset": {
-                "value": "host=x64",
-                "strategy": "set"
-            },
+            "generator": "Ninja",
             "binaryDir": "${sourceDir}/build_x64"
         }
     ],
     "buildPresets": [
         {
             "name": "release",
-            "displayName": "Host Release",
-            "configurePreset": "windows-x64",
-            "configuration": "RelWithDebInfo"
+            "displayName": "Host RelWithDebInfo",
+            "configurePreset": "windows-x64"
         },
         {
             "name": "debug",
             "displayName": "Host Debug",
-            "configurePreset": "windows-x64",
-            "configuration": "Debug"
+            "configurePreset": "windows-x64"
         }
     ]
 }

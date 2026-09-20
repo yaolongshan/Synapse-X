@@ -24,7 +24,12 @@
 #include <atomic>
 #include <cstdio>
 #include <fstream>
+#include <string>
 #include <vector>
+
+#ifndef SX_MODEL_DIR
+#define SX_MODEL_DIR "../../model/engine"
+#endif
 
 // ── 全局定义（在 PacketHeader.h 中声明为 extern）────
 std::atomic<uint8_t> g_targetModelId{0};
@@ -85,19 +90,24 @@ static size_t DimsVolume(const nvinfer1::Dims& dims) {
 // ═══════════════════════════════════════════════════════════════
 
 std::string TrtInference::GetModelPath(uint8_t modelId) {
+    const char* name = nullptr;
     switch (modelId) {
-        case 0:  return "../../model/engine/apex_enemy_self_416.engine"; // Apex Legends(新)，2类：队友, 敌人
-        case 1:  return "../../model/engine/delta_body_head_416.engine";  // Delta Force，2类：身体，头部
-        case 2:  return "../../model/engine/bf6_enemy_self_new.engine";   // Battlefield 6，2类：敌人，队友
-        case 3:  return "../../model/engine/ow2_enemy_416.engine";        // Overwatch 2，1类：敌人
-        case 4:  return "../../model/engine/aimlabs_enemy_416.engine";    // Aimlabs，1类：敌人
-        case 5:  return "../../model/engine/pubg_body_head_416.engine";   // PUBG，2类：身体，头部
-        case 6:  return "../../model/engine/cf_body_head_416.engine";     // CrossFire，2类：身体，头部
-        case 7:  return "../../model/engine/cs2_enemy_self_416.engine";   // CS2，2类：CT, T
+        case 0:  name = "apex_enemy_self_416.engine"; break; // Apex Legends(新)，2类：队友, 敌人
+        case 1:  name = "delta_body_head_416.engine"; break;  // Delta Force，2类：身体，头部
+        case 2:  name = "bf6_enemy_self_new.engine";  break;  // Battlefield 6，2类：敌人，队友
+        case 3:  name = "ow2_enemy_416.engine";       break;  // Overwatch 2，1类：敌人
+        case 4:  name = "aimlabs_enemy_416.engine";   break;  // Aimlabs，1类：敌人
+        case 5:  name = "pubg_body_head_416.engine";  break;  // PUBG，2类：身体，头部
+        case 6:  name = "cf_body_head_416.engine";    break;  // CrossFire，2类：身体，头部
+        case 7:  name = "cs2_enemy_self_416.engine";  break;  // CS2，2类：CT, T
         default:
             SX_LOG_ERROR("[TrtInference] 未知的 modelId={} (有效范围: 0..7)", modelId);
             return "";
     }
+    std::string path = SX_MODEL_DIR;
+    path += '/';
+    path += name;
+    return path;
 }
 
 // ═══════════════════════════════════════════════════════════════
