@@ -1,0 +1,18 @@
+{
+  "version": 8,
+  "configurePresets": [{
+    "name": "windows-x64",
+    "displayName": "Windows x64 — Sender",
+    "generator": "Ninja",
+    "binaryDir": "${sourceDir}/build_x64",
+    "cacheVariables": {
+      "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+      "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+    }
+  }],
+  "buildPresets": [{
+    "name": "release",
+    "configurePreset": "windows-x64",
+    "targets": ["SynapseX_Sender"]
+  }]
+}

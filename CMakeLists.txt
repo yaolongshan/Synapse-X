@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.28)
 project(SynapseX
     VERSION 1.0.0
-    DESCRIPTION "Host + Client + View — CLion 打开仓库根即可编三个模块"
+    DESCRIPTION "Host + Client + View + Sender — CLion 打开仓库根即可选择各模块"
     LANGUAGES C CXX
 )
 
@@ -25,5 +25,6 @@ endif()
 
 add_subdirectory(shared)
 add_subdirectory(host)
+add_subdirectory(sender)
 add_subdirectory(view)
 add_subdirectory(client)
