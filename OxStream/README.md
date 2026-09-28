@@ -1,4 +1,4 @@
-# SynapseX Sender
+# OxStream
 
 Windows x64 原生 Win32 GUI 发送程序。直接复用 Host 的 DXGI 采集、LZ4 压缩、UDP 发送源码及共享协议，不依赖 CUDA、TensorRT、鼠标 DLL 或 Web 面板。
 
@@ -6,20 +6,22 @@ Windows x64 原生 Win32 GUI 发送程序。直接复用 Host 的 DXGI 采集、
 
 使用 Windows SDK、CMake 3.28+、Ninja 和 MSVC x64 工具链。在 CLion 中选用 x64 Visual Studio 工具链；命令行请使用 x64 Native Tools Command Prompt。
 
-仓库根工程已包含 `SynapseX_Sender` 目标。在 CLion 中选择该目标即可。也可以从本目录单独构建，无需配置 Client 的 GPU 依赖：
+仓库根工程已包含 `OxStream` 目标。在 CLion 中选择该目标即可。也可以从本目录单独构建，无需配置 Client 的 GPU 依赖：
 
 ```powershell
-cd sender
+cd OxStream
 cmake --preset windows-x64
 cmake --build --preset release
 ```
 
-发布 `sender/build_x64/SynapseX_Sender.exe`。Sender 及其专属 LZ4 库静态链接 MSVC 运行库；发布无需携带第三方 DLL，也不要求安装 VC++ 运行库。仍依赖 Windows 自带的 D3D11、DXGI、WinSock 等组件及支持桌面复制的显卡驱动。面向 Windows 10 1703 及以上版本。
+发布 `OxStream/build_x64/OxStream.exe`。OxStream 及其专属 LZ4 库静态链接 MSVC 运行库；发布无需携带第三方 DLL，也不要求安装 VC++ 运行库。仍依赖 Windows 自带的 D3D11、DXGI、WinSock 等组件及支持桌面复制的显卡驱动。面向 Windows 10 1703 及以上版本。
+
+从仓库根目录构建时，使用 `cmake --build build_x64 --target OxStream`，产物位于 `build_x64/OxStream/OxStream.exe`。整个仓库仍为 Synapse-X，只有本模块使用 OxStream 名称。
 
 ## 使用
 
 1. 在接收电脑运行现有 `SynapseX_View.exe [端口]`，默认监听 UDP 8888。确保接收端防火墙允许该端口。View 与 Client 不要同时占用同一端口。
-2. 双击 Sender，填写接收电脑的单播 IPv4、端口、ROI 宽高和目标发送帧率。
+2. 双击 OxStream，填写接收电脑的单播 IPv4、端口、ROI 宽高和目标发送帧率。
 3. 点击“开始发送”。发送期间锁定输入；点击“停止发送”，等资源释放后即可修改参数并重新开始。
 4. 关闭窗口会停止发送并退出，没有托盘驻留，也不会在下次启动时自动发送。
 
@@ -31,14 +33,15 @@ cmake --build --preset release
 
 ## 配置和日志
 
-- 成功初始化后保存参数到 `%LOCALAPPDATA%\SynapseX\Sender\settings.ini`，下次逐字段恢复；缺失、非法字段回退到默认值。
-- 日志位于 `%LOCALAPPDATA%\SynapseX\Sender\logs\sender.log`，使用滚动文件，不创建控制台。
+- 成功初始化后保存参数到 `%LOCALAPPDATA%\OxStream\Sender\settings.ini`，下次逐字段恢复；缺失、非法字段回退到默认值。
+- 不自动迁移旧版配置和日志；首次打开 OxStream 使用默认参数，旧数据保持原样。
+- 日志位于 `%LOCALAPPDATA%\OxStream\Sender\logs\oxstream.log`，使用滚动文件，不创建控制台。
 - 参数保存或日志创建失败会在界面提示，不阻止发送。初始化失败、异常或屏幕缩小至无法容纳 ROI 时会停止并提示原因。
 - 停止信号可以唤醒帧间等待；正在进行的核心采集、DXGI 重建或整帧发送调用会完成后再退出，不强行终止线程。
 
 ## 手动验收
 
-实现阶段只做静态检查，不自动构建、运行或测试。请自行构建后检查：
+编译只确认构建和链接结果，不代表实际收图功能已验收。请自行运行并检查：
 
 - GUI 启动、不同 DPI/跨屏移动、键盘 Tab 导航及中文显示。
 - 默认参数、有效字段恢复、非法 IP/端口/尺寸/FPS、超屏幕 ROI 的错误定位。

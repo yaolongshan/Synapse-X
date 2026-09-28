@@ -39,7 +39,7 @@
 | 组件 | 机器 | 职责 |
 |------|------|------|
 | `host/` | 游戏机 | 截屏、压缩、发送、接收回复、自瞄、网页调参 |
-| `sender/` | 发送电脑 | 独立 Win32 GUI：配置 IP、端口、中心 ROI 和帧率，单向发送画面 |
+| `OxStream/` | 发送电脑 | 独立 Win32 GUI：配置 IP、端口、中心 ROI 和帧率，单向发送画面 |
 | `client/` | 推理机 | 收包、乱序重组、解压、TensorRT 推理、回传坐标 |
 | `shared/` | 两端共享 | 通信协议头 (PacketHeader, ReplyPacket) + 日志封装 |
 
@@ -73,9 +73,9 @@
 
 ### 构建
 
-CLion 打开仓库根目录，选 preset `windows-x64`，一次 Reload 即可识别 Host / Client / View / Sender。无 CUDA 时 Client 会跳过，其余目标仍可编。两台机器上仍可单独 `cd host` / `cd client` 构建。
+CLion 打开仓库根目录，选 preset `windows-x64`，一次 Reload 即可识别 Host / Client / View / OxStream。无 CUDA 时 Client 会跳过，其余目标仍可编。两台机器上仍可单独 `cd host` / `cd client` 构建。
 
-只需要 GUI 发送画面时，选择 `SynapseX_Sender` 目标，或单独打开 `sender/` 构建；接收电脑使用现有 View。详见 [Sender 构建、发布与使用说明](sender/README.md)。
+只需要 GUI 发送画面时，选择 `OxStream` 目标，或单独打开 `OxStream/` 构建；接收电脑使用现有 View。详见 [OxStream 构建、发布与使用说明](OxStream/README.md)。
 
 ```powershell
 # 仓库根（所有可用模块一起）

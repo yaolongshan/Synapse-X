@@ -7,7 +7,7 @@
 #include <iterator>
 #include <stdexcept>
 
-namespace SynapseX::SenderApp {
+namespace OxStream::SenderApp {
 namespace {
 constexpr const wchar_t* kKeys[] = {L"ip", L"port", L"width", L"height", L"fps"};
 
@@ -74,7 +74,7 @@ std::filesystem::path GetSettingsDirectory() {
     }
     std::filesystem::path directory;
     try {
-        directory = std::filesystem::path(path) / L"SynapseX" / L"Sender";
+        directory = std::filesystem::path(path) / L"OxStream" / L"Sender";
     } catch (...) {
         CoTaskMemFree(path);
         throw;
@@ -115,4 +115,4 @@ bool SaveConfig(const std::filesystem::path& directory, const Config& config) {
     return saved;
 }
 
-} // namespace SynapseX::SenderApp
+} // namespace OxStream::SenderApp

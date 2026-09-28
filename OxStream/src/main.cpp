@@ -12,9 +12,9 @@
 #include <utility>
 #include <vector>
 
-namespace SynapseX::SenderApp {
+namespace OxStream::SenderApp {
 namespace {
-constexpr wchar_t kWindowClass[] = L"SynapseX_Sender_Window";
+constexpr wchar_t kWindowClass[] = L"OxStream_Window";
 constexpr int kStartId = 101;
 constexpr int kStopId = 102;
 constexpr UINT_PTR kStatusTimer = 1;
@@ -44,7 +44,7 @@ public:
         wc.lpszClassName = kWindowClass;
         if (!RegisterClassExW(&wc)) throw std::runtime_error("窗口类注册失败");
         HWND window = CreateWindowExW(WS_EX_CONTROLPARENT, kWindowClass,
-            L"SynapseX Sender — UDP 画面发送", kWindowStyle,
+            L"OxStream — UDP 画面发送", kWindowStyle,
             CW_USEDEFAULT, CW_USEDEFAULT, 600, 560, nullptr, nullptr, instance, this);
         if (!window) throw std::runtime_error("窗口创建失败");
         ShowWindow(window, show);
@@ -260,7 +260,7 @@ private:
             // 异常不得穿过 Win32 回调边界；先结束线程，再允许窗口销毁。
             self->m_session.RequestStop();
             self->m_session.Join();
-            MessageBoxW(window, L"界面处理发生异常，程序将退出。", L"SynapseX Sender", MB_OK | MB_ICONERROR);
+            MessageBoxW(window, L"界面处理发生异常，程序将退出。", L"OxStream", MB_OK | MB_ICONERROR);
             if (message == WM_CREATE) return -1;
             DestroyWindow(window);
             return 0;
@@ -282,10 +282,10 @@ private:
     bool m_observedStart = false;
 };
 } // namespace
-} // namespace SynapseX::SenderApp
+} // namespace OxStream::SenderApp
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
-    using namespace SynapseX::SenderApp;
+    using namespace OxStream::SenderApp;
     int result = 1;
     try {
         const auto directory = GetSettingsDirectory();
@@ -293,11 +293,11 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
         Window window(directory, logReady);
         result = window.Run(instance, show);
     } catch (const std::exception& error) {
-        try { SX_LOG_ERROR("[Sender] 启动失败: {}", error.what()); } catch (...) {}
+        try { SX_LOG_ERROR("[OxStream] 启动失败: {}", error.what()); } catch (...) {}
         MessageBoxW(nullptr, L"程序初始化失败，请检查用户配置目录权限及可用系统资源。",
-                    L"SynapseX Sender", MB_OK | MB_ICONERROR);
+                    L"OxStream", MB_OK | MB_ICONERROR);
     } catch (...) {
-        MessageBoxW(nullptr, L"程序初始化发生未知错误。", L"SynapseX Sender", MB_OK | MB_ICONERROR);
+        MessageBoxW(nullptr, L"程序初始化发生未知错误。", L"OxStream", MB_OK | MB_ICONERROR);
     }
     SynapseX::Log::Shutdown();
     return result;

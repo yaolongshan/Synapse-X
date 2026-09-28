@@ -9,7 +9,7 @@
 #include <mutex>
 #include <utility>
 
-namespace SynapseX::SenderApp {
+namespace OxStream::SenderApp {
 namespace {
 // std::filesystem::path + ofstream 使用 Windows 原生宽字符路径，
 // 避免修改 spdlog 全局文件名类型后与现有 Log.h 发生类型冲突。
@@ -26,23 +26,23 @@ protected:
         formatter_->format(message, formatted);
         if (m_size + formatted.size() > kLimit && m_size > 0) Rotate();
         m_file.write(formatted.data(), static_cast<std::streamsize>(formatted.size()));
-        if (!m_file) throw spdlog::spdlog_ex("写入 Sender 日志失败");
+        if (!m_file) throw spdlog::spdlog_ex("写入 OxStream 日志失败");
         m_size += formatted.size();
     }
 
     void flush_() override {
         m_file.flush();
-        if (!m_file) throw spdlog::spdlog_ex("刷新 Sender 日志失败");
+        if (!m_file) throw spdlog::spdlog_ex("刷新 OxStream 日志失败");
     }
 
 private:
     std::filesystem::path Backup(int index) const {
-        return m_path.parent_path() / (L"sender." + std::to_wstring(index) + L".log");
+        return m_path.parent_path() / (L"oxstream." + std::to_wstring(index) + L".log");
     }
 
     void Open() {
         m_file.open(m_path, std::ios::binary | std::ios::app);
-        if (!m_file) throw spdlog::spdlog_ex("打开 Sender 日志失败");
+        if (!m_file) throw spdlog::spdlog_ex("打开 OxStream 日志失败");
         m_size = std::filesystem::file_size(m_path);
     }
 
@@ -74,12 +74,12 @@ bool InitializeLogger(const std::filesystem::path& directory) {
     std::shared_ptr<spdlog::sinks::sink> sink;
     bool fileReady = true;
     try {
-        sink = std::make_shared<UnicodeFileSink>(directory / L"logs" / L"sender.log");
+        sink = std::make_shared<UnicodeFileSink>(directory / L"logs" / L"oxstream.log");
     } catch (...) {
         fileReady = false;
         sink = std::make_shared<spdlog::sinks::null_sink_mt>();
     }
-    auto logger = std::make_shared<spdlog::logger>("sender", sink);
+    auto logger = std::make_shared<spdlog::logger>("oxstream", sink);
     logger->set_pattern("%Y-%m-%d %H:%M:%S.%e [%l] [tid %t] %v");
     logger->set_level(spdlog::level::info);
     logger->flush_on(spdlog::level::info);
@@ -87,4 +87,4 @@ bool InitializeLogger(const std::filesystem::path& directory) {
     return fileReady;
 }
 
-} // namespace SynapseX::SenderApp
+} // namespace OxStream::SenderApp

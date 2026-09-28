@@ -9,7 +9,7 @@
 #include <mutex>
 #include <thread>
 
-namespace SynapseX::SenderApp {
+namespace OxStream::SenderApp {
 
 constexpr UINT kSessionChanged = WM_APP + 1;
 
@@ -48,4 +48,4 @@ private:
     std::condition_variable m_wake;
 };
 
-} // namespace SynapseX::SenderApp
+} // namespace OxStream::SenderApp

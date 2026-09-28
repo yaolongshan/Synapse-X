@@ -4,7 +4,7 @@
 #include <filesystem>
 #include <string>
 
-namespace SynapseX::SenderApp {
+namespace OxStream::SenderApp {
 
 struct Config {
     std::string ip = "192.168.100.2";
@@ -23,4 +23,4 @@ std::filesystem::path GetSettingsDirectory();
 Config LoadConfig(const std::filesystem::path& directory);
 bool SaveConfig(const std::filesystem::path& directory, const Config& config);
 
-} // namespace SynapseX::SenderApp
+} // namespace OxStream::SenderApp

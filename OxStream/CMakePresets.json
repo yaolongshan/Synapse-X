@@ -2,7 +2,7 @@
   "version": 8,
   "configurePresets": [{
     "name": "windows-x64",
-    "displayName": "Windows x64 — Sender",
+    "displayName": "Windows x64 — OxStream",
     "generator": "Ninja",
     "binaryDir": "${sourceDir}/build_x64",
     "cacheVariables": {
@@ -13,6 +13,6 @@
   "buildPresets": [{
     "name": "release",
     "configurePreset": "windows-x64",
-    "targets": ["SynapseX_Sender"]
+    "targets": ["OxStream"]
   }]
 }

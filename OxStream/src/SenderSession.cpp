@@ -9,7 +9,7 @@
 #include <stdexcept>
 #include <vector>
 
-namespace SynapseX::SenderApp {
+namespace OxStream::SenderApp {
 namespace {
 using Clock = std::chrono::steady_clock;
 
@@ -73,7 +73,7 @@ void SenderSession::Run(const Config& config, HWND window) {
         m_status.error = error.message;
         m_status.invalidField = error.field;
     } catch (const std::exception& error) {
-        try { SX_LOG_ERROR("[Sender] 会话异常: {}", error.what()); } catch (...) {}
+        try { SX_LOG_ERROR("[OxStream] 会话异常: {}", error.what()); } catch (...) {}
         std::lock_guard<std::mutex> lock(m_statusMutex);
         m_status.error = L"发送会话发生异常，已停止。详情请查看日志。";
     } catch (...) {
@@ -91,11 +91,11 @@ void SenderSession::CaptureAndSend(const Config& config, HWND window) {
     TimerResolution timer;
     // 保留 Host 对发送循环线程的调度设置，只作用于工作线程。
     if (!SetThreadAffinityMask(GetCurrentThread(), 1ULL << 2)) {
-        SX_LOG_WARN("[Sender] 工作线程绑定核心 2 失败: {}", GetLastError());
+        SX_LOG_WARN("[OxStream] 工作线程绑定核心 2 失败: {}", GetLastError());
     }
     SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
 
-    DxgiCapturer capturer;
+    SynapseX::DxgiCapturer capturer;
     if (!capturer.Initialize(config.width, config.height))
         throw SessionError{L"屏幕采集初始化失败。请查看日志中的 DXGI 错误。"};
     if (config.width > capturer.GetOutputWidth())
@@ -107,19 +107,19 @@ void SenderSession::CaptureAndSend(const Config& config, HWND window) {
     if (m_stop.load()) return;
 
     const int rawSize = config.width * config.height * 4;
-    Lz4Compressor compressor;
+    SynapseX::Lz4Compressor compressor;
     if (!compressor.Initialize(rawSize))
         throw SessionError{L"LZ4 压缩缓冲区初始化失败。"};
-    UdpSender sender;
+    SynapseX::UdpSender sender;
     if (!sender.Initialize(config.ip, static_cast<uint16_t>(config.port)))
         throw SessionError{L"UDP 发送器初始化失败。请查看日志中的网络错误。"};
 
     std::vector<uint8_t> rawBuffer, compressedBuffer, cachedCompressed;
     rawBuffer.reserve(rawSize);
-    compressedBuffer.reserve(Lz4Compressor::GetMaxOutputSize(rawSize));
-    cachedCompressed.reserve(Lz4Compressor::GetMaxOutputSize(rawSize));
+    compressedBuffer.reserve(SynapseX::Lz4Compressor::GetMaxOutputSize(rawSize));
+    cachedCompressed.reserve(SynapseX::Lz4Compressor::GetMaxOutputSize(rawSize));
     if (m_stop.load()) return;
-    SX_LOG_INFO("[Sender] 开始: {}:{} ROI={}x{} 目标帧率={}",
+    SX_LOG_INFO("[OxStream] 开始: {}:{} ROI={}x{} 目标帧率={}",
                 config.ip, config.port, config.width, config.height, config.fps);
     {
         std::lock_guard<std::mutex> lock(m_statusMutex);
@@ -187,7 +187,7 @@ void SenderSession::CaptureAndSend(const Config& config, HWND window) {
         m_status.sentFrames = sentTotal;
         m_status.captureFps = m_status.sendFps = 0;
     }
-    SX_LOG_INFO("[Sender] 停止: 成功帧={} 失败帧={}", sentTotal, failedTotal);
+    SX_LOG_INFO("[OxStream] 停止: 成功帧={} 失败帧={}", sentTotal, failedTotal);
 }
 
-} // namespace SynapseX::SenderApp
+} // namespace OxStream::SenderApp
