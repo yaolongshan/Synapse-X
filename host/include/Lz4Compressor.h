@@ -28,6 +28,12 @@ public:
     bool Compress(const uint8_t* input, int inputSize,
                   std::vector<uint8_t>& output);
 
+    // Direct compression into caller-owned storage; no Initialize/internal buffer needed.
+    // Returns the valid byte count, or 0 on failure. A failed call may modify output.
+    // Input and output must not overlap. The caller retains the previous good frame separately.
+    static int CompressInto(const uint8_t* input, int inputSize,
+                            uint8_t* output, int outputCapacity);
+
     // 压缩数据大小的最坏情况上限（LZ4_compressBound）。
     static int GetMaxOutputSize(int inputSize);
 

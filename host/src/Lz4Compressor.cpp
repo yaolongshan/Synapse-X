@@ -57,6 +57,15 @@ bool Lz4Compressor::Compress(const uint8_t* input, int inputSize,
     return true;
 }
 
+int Lz4Compressor::CompressInto(const uint8_t* input, int inputSize,
+                               uint8_t* output, int outputCapacity) {
+    if (!input || !output || inputSize <= 0 || inputSize > LZ4_MAX_INPUT_SIZE || outputCapacity <= 0) {
+        return 0;
+    }
+    return LZ4_compress_fast(reinterpret_cast<const char*>(input), reinterpret_cast<char*>(output),
+                             inputSize, outputCapacity, 5);
+}
+
 int Lz4Compressor::GetMaxOutputSize(int inputSize) {
     return LZ4_compressBound(inputSize);
 }

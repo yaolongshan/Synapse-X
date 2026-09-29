@@ -108,17 +108,18 @@ void SenderSession::CaptureAndSend(const Config& config, HWND window) {
 
     constexpr auto pixelFormat = SynapseX::FramePixelFormat::Bgr24;
     const int rawSize = config.width * config.height * static_cast<int>(SynapseX::BytesPerPixel(pixelFormat));
-    SynapseX::Lz4Compressor compressor;
-    if (!compressor.Initialize(rawSize))
+    const int compressedCapacity = SynapseX::Lz4Compressor::GetMaxOutputSize(rawSize);
+    if (compressedCapacity <= 0)
         throw SessionError{L"LZ4 压缩缓冲区初始化失败。"};
     SynapseX::UdpSender sender;
     if (!sender.Initialize(config.ip, static_cast<uint16_t>(config.port)))
         throw SessionError{L"UDP 发送器初始化失败。请查看日志中的网络错误。"};
 
-    std::vector<uint8_t> rawBuffer, compressedBuffer, cachedCompressed;
+    std::vector<uint8_t> rawBuffer;
+    // Fixed-sized work/cache buffers: publish only successful compression by swapping ownership.
+    std::vector<uint8_t> compressedBuffer(compressedCapacity), cachedCompressed(compressedCapacity);
+    int cachedLength = 0;
     rawBuffer.reserve(rawSize);
-    compressedBuffer.reserve(SynapseX::Lz4Compressor::GetMaxOutputSize(rawSize));
-    cachedCompressed.reserve(SynapseX::Lz4Compressor::GetMaxOutputSize(rawSize));
     if (m_stop.load()) return;
     SX_LOG_INFO("[OxStream] 开始: {}:{} ROI={}x{} 目标帧率={}",
                 config.ip, config.port, config.width, config.height, config.fps);
@@ -147,14 +148,17 @@ void SenderSession::CaptureAndSend(const Config& config, HWND window) {
         if (m_stop.load()) break;
         if (gotFrame) {
             ++capturedWindow;
-            if (compressor.Compress(rawBuffer.data(), static_cast<int>(rawBuffer.size()), compressedBuffer)) {
-                cachedCompressed = compressedBuffer;
+            const int length = SynapseX::Lz4Compressor::CompressInto(rawBuffer.data(),
+                static_cast<int>(rawBuffer.size()), compressedBuffer.data(), compressedCapacity);
+            if (length > 0) {
+                cachedCompressed.swap(compressedBuffer);
+                cachedLength = length;
                 hasCachedFrame = true;
             }
         }
         if (hasCachedFrame) {
             const bool sent = sender.SendCompressedFrame(
-                cachedCompressed.data(), static_cast<uint32_t>(cachedCompressed.size()), frameId,
+                cachedCompressed.data(), static_cast<uint32_t>(cachedLength), frameId,
                 static_cast<uint16_t>(config.width), static_cast<uint16_t>(config.height), 0, pixelFormat);
             if (sent) { ++sentTotal; ++sentWindow; }
             else ++failedTotal;
