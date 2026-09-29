@@ -90,7 +90,8 @@ bool UdpSender::SendCompressedFrame(const uint8_t* compressedData,
                                      uint32_t frameId,
                                      uint16_t width,
                                      uint16_t height,
-                                     uint8_t  modelId) {
+                                     uint8_t  modelId,
+                                     FramePixelFormat format) {
     if (!m_initialized) return false;
     if (totalSize == 0)   return false;
 
@@ -105,13 +106,14 @@ bool UdpSender::SendCompressedFrame(const uint8_t* compressedData,
 
     // 预填充每帧不变的头部字段。
     auto* header = reinterpret_cast<PacketHeader*>(packetBuf);
-    header->magic       = PROTOCOL_MAGIC;
+    header->magic       = ProtocolMagic(format);
     header->frameId     = frameId;
     header->totalChunks = totalChunks;
     header->totalSize   = totalSize;
     header->width       = width;
     header->height      = height;
     header->modelId     = modelId;
+    header->padding[0] = header->padding[1] = header->padding[2] = 0;
 
     const uint8_t* src = compressedData;
     uint32_t remaining = totalSize;

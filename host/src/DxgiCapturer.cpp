@@ -7,10 +7,11 @@
 //        v CopySubresourceRegion（仅 ROI）
 //   暂存纹理（显存，CPU_ACCESS_READ）
 //        |
-//        v Map / 逐行 memcpy / Unmap
-//   std::vector<uint8_t>（系统内存，BGRA 连续排列）
+//        v Map / 逐行复制或去 Alpha 打包 / Unmap
+//   std::vector<uint8_t>（系统内存，默认 BGRA，OxStream 为 BGR 连续排列）
 
 #include "DxgiCapturer.h"
+#include "PixelPacking.h"
 #include "Log.h"
 
 #include <cstring>
@@ -66,7 +67,7 @@ bool DxgiCapturer::Initialize(int roiWidth, int roiHeight) {
     return true;
 }
 
-bool DxgiCapturer::CaptureFrame(std::vector<uint8_t>& outBuffer) {
+bool DxgiCapturer::CaptureFrame(std::vector<uint8_t>& outBuffer, FramePixelFormat format) {
     // 冷启动重建：如果之前失败，冷却后重试
     if (!m_initialized || !m_duplication) {
         auto now = std::chrono::steady_clock::now();
@@ -194,19 +195,8 @@ bool DxgiCapturer::CaptureFrame(std::vector<uint8_t>& outBuffer) {
         return false;
     }
 
-    UINT rowSize = m_roiWidth * kBytesPerPixel;
-    outBuffer.resize(static_cast<size_t>(m_roiHeight) * rowSize);
-
-    const uint8_t* src = static_cast<const uint8_t*>(mapped.pData);
-    uint8_t*       dst = outBuffer.data();
-
-    for (int row = 0; row < m_roiHeight; ++row) {
-        std::memcpy(
-            dst + static_cast<size_t>(row) * rowSize,
-            src + static_cast<size_t>(row) * mapped.RowPitch,
-            rowSize
-        );
-    }
+    PackBgraRows(static_cast<const uint8_t*>(mapped.pData), mapped.RowPitch,
+                 m_roiWidth, m_roiHeight, outBuffer, format);
 
     m_context->Unmap(m_stagingTexture.Get(), 0);
 

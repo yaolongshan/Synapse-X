@@ -10,11 +10,12 @@
 //   · 全程 ComPtr 管理 D3D/DXGI 对象生命周期，杜绝泄漏
 //   · 自动检测并恢复 DXGI_ERROR_ACCESS_LOST（模式切换/全屏独占丢失）
 //   · AcquireNextFrame 超时视为正常情况（无新帧），不抛异常
-//   · 输出格式：BGRA (DXGI_FORMAT_B8G8R8A8_UNORM)，每像素 4 字节
+//   · 采集格式：BGRA (DXGI_FORMAT_B8G8R8A8_UNORM)；默认输出 BGRA，可直接打包 BGR
 
 #include <cstdint>
 #include <chrono>
 #include <vector>
+#include "FramePixelFormat.h"
 
 #include <d3d11.h>
 #include <dxgi1_2.h>
@@ -50,9 +51,10 @@ public:
     bool Initialize(int roiWidth = kDefaultRoiWidth, int roiHeight = kDefaultRoiHeight);
 
     // 捕获一帧桌面并提取中心 ROI 像素
-    // outBuffer：输出缓冲区，会自动 resize 为 ROI 尺寸的 BGRA 数据
+    // outBuffer：按 format 自动 resize，默认 BGRA 四通道，OxStream 使用 BGR 三通道
     // 返回 true 表示获取到新帧；false 表示无新帧或处于重建中
-    bool CaptureFrame(std::vector<uint8_t>& outBuffer);
+    bool CaptureFrame(std::vector<uint8_t>& outBuffer,
+                      FramePixelFormat format = FramePixelFormat::Bgra32);
 
     // 主动释放所有 GPU 资源（析构时也会自动调用）
     void Cleanup();

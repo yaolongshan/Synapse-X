@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <string>
 #include <winsock2.h>
+#include "FramePixelFormat.h"
 
 namespace SynapseX {
 
@@ -34,13 +35,15 @@ public:
     // 将 `compressedData`（totalSize 字节）分片并通过 UDP 发送。
     // frameId：单调递增的帧计数器，嵌入每个分片中。
     // width / height：ROI 尺寸，嵌入以供客户端设定解码器大小。
+    // format：须与压缩前像素一致；默认 BGRA，BGR 使用独立协议魔数。
     // 返回 true 表示所有分片均发送成功。
     bool SendCompressedFrame(const uint8_t* compressedData,
                              uint32_t totalSize,
                              uint32_t frameId,
                              uint16_t width,
                              uint16_t height,
-                             uint8_t  modelId);
+                             uint8_t  modelId,
+                             FramePixelFormat format = FramePixelFormat::Bgra32);
 
     void Cleanup();
     bool IsInitialized() const { return m_initialized; }

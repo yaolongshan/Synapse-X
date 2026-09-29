@@ -106,7 +106,8 @@ void SenderSession::CaptureAndSend(const Config& config, HWND window) {
                            std::to_wstring(capturer.GetOutputHeight()) + L"）。", 3};
     if (m_stop.load()) return;
 
-    const int rawSize = config.width * config.height * 4;
+    constexpr auto pixelFormat = SynapseX::FramePixelFormat::Bgr24;
+    const int rawSize = config.width * config.height * static_cast<int>(SynapseX::BytesPerPixel(pixelFormat));
     SynapseX::Lz4Compressor compressor;
     if (!compressor.Initialize(rawSize))
         throw SessionError{L"LZ4 压缩缓冲区初始化失败。"};
@@ -136,7 +137,7 @@ void SenderSession::CaptureAndSend(const Config& config, HWND window) {
     bool hasCachedFrame = false;
 
     while (!m_stop.load()) {
-        const bool gotFrame = capturer.CaptureFrame(rawBuffer);
+        const bool gotFrame = capturer.CaptureFrame(rawBuffer, pixelFormat);
         // 显示模式改变后重新检查尺寸，避免把超出屏幕范围的 ROI 发给接收端。
         if (capturer.IsInitialized() &&
             (config.width > capturer.GetOutputWidth() || config.height > capturer.GetOutputHeight())) {
@@ -154,7 +155,7 @@ void SenderSession::CaptureAndSend(const Config& config, HWND window) {
         if (hasCachedFrame) {
             const bool sent = sender.SendCompressedFrame(
                 cachedCompressed.data(), static_cast<uint32_t>(cachedCompressed.size()), frameId,
-                static_cast<uint16_t>(config.width), static_cast<uint16_t>(config.height), 0);
+                static_cast<uint16_t>(config.width), static_cast<uint16_t>(config.height), 0, pixelFormat);
             if (sent) { ++sentTotal; ++sentWindow; }
             else ++failedTotal;
             ++frameId;

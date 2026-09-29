@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.16)
+project(OxStreamPixelTests LANGUAGES CXX)
+enable_testing()
+add_executable(oxstream_pixel_packing_tests pixel_packing_tests.cpp)
+target_compile_features(oxstream_pixel_packing_tests PRIVATE cxx_std_17)
+target_include_directories(oxstream_pixel_packing_tests PRIVATE ../../shared/include)
+add_test(NAME oxstream_pixel_packing_tests COMMAND oxstream_pixel_packing_tests)

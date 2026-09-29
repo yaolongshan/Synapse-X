@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include "FramePixelFormat.h"
 
 // ── 应用层分片协议 ─────────────────────────────────────────
 // 每个压缩帧被拆分为 N 个适合 UDP 传输的分片。
@@ -14,6 +15,10 @@ namespace SynapseX {
 
 constexpr uint16_t MAX_PAYLOAD_SIZE = 1400;
 constexpr uint16_t PROTOCOL_MAGIC   = 0x5358;  // 'SX'
+constexpr uint16_t BGR_PROTOCOL_MAGIC = 0x5342; // OxStream BGR24; incompatible with BGRA receivers.
+constexpr uint16_t ProtocolMagic(FramePixelFormat format) {
+    return format == FramePixelFormat::Bgr24 ? BGR_PROTOCOL_MAGIC : PROTOCOL_MAGIC;
+}
 
 #pragma pack(push, 1)
 struct PacketHeader {
