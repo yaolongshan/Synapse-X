@@ -1,4 +1,6 @@
 #include "SenderSession.h"
+#include "StageTiming.h"
+#include "StageReporter.h"
 #include "DxgiCapturer.h"
 #include "Lz4Compressor.h"
 #include "UdpSender.h"
@@ -89,6 +91,20 @@ void SenderSession::Run(const Config& config, HWND window) {
 
 void SenderSession::CaptureAndSend(const Config& config, HWND window) {
     TimerResolution timer;
+    // Create the diagnostic worker before applying capture-thread affinity/priority.
+    StageReporter reporter([](const StageSnapshot& snapshot) {
+        const auto& stages = snapshot.stages;
+        SX_LOG_INFO("[OxStream] 阶段耗时 window={} window_s={:.3f} capture_fps={:.1f} send_fps={:.1f} "
+                    "capture_ms[n={},mean={:.3f},max={:.3f}] compress_ms[n={},mean={:.3f},max={:.3f}] "
+                    "send_fresh_ms[n={},mean={:.3f},max={:.3f}] send_cached_ms[n={},mean={:.3f},max={:.3f}] "
+                    "sent_total={} failed_total={}",
+                    snapshot.window, snapshot.seconds, snapshot.captureFps, snapshot.sendFps,
+                    stages[0].Count(), stages[0].MeanMs(), stages[0].MaxMs(),
+                    stages[1].Count(), stages[1].MeanMs(), stages[1].MaxMs(),
+                    stages[2].Count(), stages[2].MeanMs(), stages[2].MaxMs(),
+                    stages[3].Count(), stages[3].MeanMs(), stages[3].MaxMs(),
+                    snapshot.sent, snapshot.failed);
+    });
     // 保留 Host 对发送循环线程的调度设置，只作用于工作线程。
     if (!SetThreadAffinityMask(GetCurrentThread(), 1ULL << 2)) {
         SX_LOG_WARN("[OxStream] 工作线程绑定核心 2 失败: {}", GetLastError());
@@ -136,9 +152,15 @@ void SenderSession::CaptureAndSend(const Config& config, HWND window) {
     uint32_t frameId = 0;
     uint64_t capturedWindow = 0, sentWindow = 0, sentTotal = 0, failedTotal = 0;
     bool hasCachedFrame = false;
+    StageTiming captureTiming, compressionTiming, freshSendTiming, cachedSendTiming;
+    uint64_t timingWindow = 0;
 
     while (!m_stop.load()) {
+        bool publishedFreshCache = false;
+        const auto captureStart = Clock::now();
         const bool gotFrame = capturer.CaptureFrame(rawBuffer, pixelFormat);
+        const auto captureEnd = Clock::now();
+        if (gotFrame) captureTiming.Add(captureEnd - captureStart);
         // 显示模式改变后重新检查尺寸，避免把超出屏幕范围的 ROI 发给接收端。
         if (capturer.IsInitialized() &&
             (config.width > capturer.GetOutputWidth() || config.height > capturer.GetOutputHeight())) {
@@ -148,19 +170,29 @@ void SenderSession::CaptureAndSend(const Config& config, HWND window) {
         if (m_stop.load()) break;
         if (gotFrame) {
             ++capturedWindow;
+            const auto compressionStart = Clock::now();
             const int length = SynapseX::Lz4Compressor::CompressInto(rawBuffer.data(),
                 static_cast<int>(rawBuffer.size()), compressedBuffer.data(), compressedCapacity);
+            const auto compressionEnd = Clock::now();
             if (length > 0) {
+                compressionTiming.Add(compressionEnd - compressionStart);
                 cachedCompressed.swap(compressedBuffer);
                 cachedLength = length;
                 hasCachedFrame = true;
+                publishedFreshCache = true;
             }
         }
         if (hasCachedFrame) {
+            const auto sendStart = Clock::now();
             const bool sent = sender.SendCompressedFrame(
                 cachedCompressed.data(), static_cast<uint32_t>(cachedLength), frameId,
                 static_cast<uint16_t>(config.width), static_cast<uint16_t>(config.height), 0, pixelFormat);
-            if (sent) { ++sentTotal; ++sentWindow; }
+            const auto sendEnd = Clock::now();
+            if (sent) {
+                ++sentTotal;
+                ++sentWindow;
+                (publishedFreshCache ? freshSendTiming : cachedSendTiming).Add(sendEnd - sendStart);
+            }
             else ++failedTotal;
             ++frameId;
         }
@@ -173,9 +205,18 @@ void SenderSession::CaptureAndSend(const Config& config, HWND window) {
             if (elapsed >= 1.0) {
                 m_status.captureFps = capturedWindow / elapsed;
                 m_status.sendFps = sentWindow / elapsed;
-                capturedWindow = sentWindow = 0;
-                windowStart = now;
             }
+        }
+        if (elapsed >= 1.0) {
+            // Best effort: replace stale diagnostics, never wait for logging or its worker.
+            reporter.Publish({++timingWindow, elapsed, capturedWindow / elapsed, sentWindow / elapsed,
+                {captureTiming, compressionTiming, freshSendTiming, cachedSendTiming}, sentTotal, failedTotal});
+            captureTiming.Reset();
+            compressionTiming.Reset();
+            freshSendTiming.Reset();
+            cachedSendTiming.Reset();
+            capturedWindow = sentWindow = 0;
+            windowStart = now;
         }
         nextTick += interval;
         const auto beforeWait = Clock::now();

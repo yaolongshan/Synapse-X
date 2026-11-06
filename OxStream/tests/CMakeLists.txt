@@ -14,3 +14,10 @@ target_compile_features(oxstream_compression_buffer_tests PRIVATE cxx_std_17)
 target_include_directories(oxstream_compression_buffer_tests PRIVATE
     ../../host/include ../../thirdparty/lz4-1.10.0/lib)
 add_test(NAME oxstream_compression_buffer_tests COMMAND oxstream_compression_buffer_tests)
+
+add_executable(oxstream_stage_timing_tests stage_timing_tests.cpp)
+find_package(Threads REQUIRED)
+target_link_libraries(oxstream_stage_timing_tests PRIVATE Threads::Threads)
+target_compile_features(oxstream_stage_timing_tests PRIVATE cxx_std_17)
+target_include_directories(oxstream_stage_timing_tests PRIVATE ../include)
+add_test(NAME oxstream_stage_timing_tests COMMAND oxstream_stage_timing_tests)
