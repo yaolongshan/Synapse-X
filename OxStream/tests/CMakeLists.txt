@@ -21,3 +21,8 @@ target_link_libraries(oxstream_stage_timing_tests PRIVATE Threads::Threads)
 target_compile_features(oxstream_stage_timing_tests PRIVATE cxx_std_17)
 target_include_directories(oxstream_stage_timing_tests PRIVATE ../include)
 add_test(NAME oxstream_stage_timing_tests COMMAND oxstream_stage_timing_tests)
+
+add_executable(oxstream_dxgi_readback_scope_tests dxgi_readback_scope_tests.cpp)
+target_compile_features(oxstream_dxgi_readback_scope_tests PRIVATE cxx_std_17)
+target_include_directories(oxstream_dxgi_readback_scope_tests PRIVATE ../../host/include)
+add_test(NAME oxstream_dxgi_readback_scope_tests COMMAND oxstream_dxgi_readback_scope_tests)

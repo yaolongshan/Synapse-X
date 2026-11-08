@@ -32,6 +32,11 @@ constexpr int kBytesPerPixel    = 4;    // BGRA = 4 bytes
 // 设为 0 表示立即返回；设为 1 可略微降低 CPU 自旋
 constexpr UINT kAcquireTimeoutMs = 0;
 
+enum class CaptureReadbackMode {
+    FlushBeforeRelease, // 默认保留 Host 的 Copy -> Flush -> ReleaseFrame -> Map 顺序。
+    MapBeforeRelease,   // OxStream 在 Map / 打包 / Unmap 完成后释放，不显式 Flush。
+};
+
 class DxgiCapturer {
 public:
     DxgiCapturer() = default;
@@ -52,9 +57,11 @@ public:
 
     // 捕获一帧桌面并提取中心 ROI 像素
     // outBuffer：按 format 自动 resize，默认 BGRA 四通道，OxStream 使用 BGR 三通道
+    // readbackMode：默认保持原顺序，调用方可显式选择读回完成后再释放桌面帧
     // 返回 true 表示获取到新帧；false 表示无新帧或处于重建中
     bool CaptureFrame(std::vector<uint8_t>& outBuffer,
-                      FramePixelFormat format = FramePixelFormat::Bgra32);
+                      FramePixelFormat format = FramePixelFormat::Bgra32,
+                      CaptureReadbackMode readbackMode = CaptureReadbackMode::FlushBeforeRelease);
 
     // 主动释放所有 GPU 资源（析构时也会自动调用）
     void Cleanup();

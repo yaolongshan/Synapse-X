@@ -11,6 +11,7 @@
 //   std::vector<uint8_t>（系统内存，默认 BGRA，OxStream 为 BGR 连续排列）
 
 #include "DxgiCapturer.h"
+#include "DxgiReadbackScope.h"
 #include "PixelPacking.h"
 #include "Log.h"
 
@@ -67,7 +68,8 @@ bool DxgiCapturer::Initialize(int roiWidth, int roiHeight) {
     return true;
 }
 
-bool DxgiCapturer::CaptureFrame(std::vector<uint8_t>& outBuffer, FramePixelFormat format) {
+bool DxgiCapturer::CaptureFrame(std::vector<uint8_t>& outBuffer, FramePixelFormat format,
+                               CaptureReadbackMode readbackMode) {
     // 冷启动重建：如果之前失败，冷却后重试
     if (!m_initialized || !m_duplication) {
         auto now = std::chrono::steady_clock::now();
@@ -146,11 +148,11 @@ bool DxgiCapturer::CaptureFrame(std::vector<uint8_t>& outBuffer, FramePixelForma
 
     // ── 2. 查询桌面纹理 ──────────────────────────
     Microsoft::WRL::ComPtr<ID3D11Texture2D> desktopTexture;
+    detail::DxgiReadbackScope readback(m_duplication.Get(), m_context.Get(), m_stagingTexture.Get());
     hr = desktopResource.As(&desktopTexture);
     if (FAILED(hr)) {
         SX_LOG_ERROR("[DxgiCapturer] QI -> ID3D11Texture2D 失败: HRESULT=0x{:08X}",
                      static_cast<unsigned>(hr));
-        m_duplication->ReleaseFrame();
         return false;
     }
 
@@ -179,14 +181,14 @@ bool DxgiCapturer::CaptureFrame(std::vector<uint8_t>& outBuffer, FramePixelForma
         &srcBox                   // 源区域（仅 ROI）
     );
 
-    // 刷新 GPU 管线，确保 CopySubresourceRegion 完成
-    // 之后再调用 ReleaseFrame（后者可能使桌面纹理无效）。
-    m_context->Flush();
+    if (readbackMode != CaptureReadbackMode::MapBeforeRelease) {
+        // 保持 Host 原顺序。Flush 只提交命令，复制完成仍由后续 Map 同步。
+        m_context->Flush();
+        readback.ReleaseFrame();
+    }
 
-    // ── 4. 释放桌面帧 ──────────────────────────
-    m_duplication->ReleaseFrame();
-
-    // ── 5. 映射暂存纹理 -> 逐行复制 ─────────
+    // ── 4. 映射暂存纹理 -> 逐行复制 ─────────
+    // OxStream 直接由阻塞 Map 完成必要的提交和等待，读取期间仍持有桌面帧。
     D3D11_MAPPED_SUBRESOURCE mapped = {};
     hr = m_context->Map(m_stagingTexture.Get(), 0, D3D11_MAP_READ, 0, &mapped);
     if (FAILED(hr)) {
@@ -194,11 +196,13 @@ bool DxgiCapturer::CaptureFrame(std::vector<uint8_t>& outBuffer, FramePixelForma
                      static_cast<unsigned>(hr));
         return false;
     }
+    readback.MarkMapped();
 
     PackBgraRows(static_cast<const uint8_t*>(mapped.pData), mapped.RowPitch,
                  m_roiWidth, m_roiHeight, outBuffer, format);
 
-    m_context->Unmap(m_stagingTexture.Get(), 0);
+    readback.Unmap();
+    readback.ReleaseFrame();
 
     return true;
 }

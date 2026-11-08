@@ -123,6 +123,7 @@ void SenderSession::CaptureAndSend(const Config& config, HWND window) {
     if (m_stop.load()) return;
 
     constexpr auto pixelFormat = SynapseX::FramePixelFormat::Bgr24;
+    constexpr auto readbackMode = SynapseX::CaptureReadbackMode::MapBeforeRelease;
     const int rawSize = config.width * config.height * static_cast<int>(SynapseX::BytesPerPixel(pixelFormat));
     const int compressedCapacity = SynapseX::Lz4Compressor::GetMaxOutputSize(rawSize);
     if (compressedCapacity <= 0)
@@ -137,7 +138,7 @@ void SenderSession::CaptureAndSend(const Config& config, HWND window) {
     int cachedLength = 0;
     rawBuffer.reserve(rawSize);
     if (m_stop.load()) return;
-    SX_LOG_INFO("[OxStream] 开始: {}:{} ROI={}x{} 目标帧率={}",
+    SX_LOG_INFO("[OxStream] 开始: {}:{} ROI={}x{} 目标帧率={} capture_readback=map_then_release",
                 config.ip, config.port, config.width, config.height, config.fps);
     {
         std::lock_guard<std::mutex> lock(m_statusMutex);
@@ -158,7 +159,7 @@ void SenderSession::CaptureAndSend(const Config& config, HWND window) {
     while (!m_stop.load()) {
         bool publishedFreshCache = false;
         const auto captureStart = Clock::now();
-        const bool gotFrame = capturer.CaptureFrame(rawBuffer, pixelFormat);
+        const bool gotFrame = capturer.CaptureFrame(rawBuffer, pixelFormat, readbackMode);
         const auto captureEnd = Clock::now();
         if (gotFrame) captureTiming.Add(captureEnd - captureStart);
         // 显示模式改变后重新检查尺寸，避免把超出屏幕范围的 ROI 发给接收端。
